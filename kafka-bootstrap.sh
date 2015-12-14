@@ -73,6 +73,8 @@ then
     cp /vagrant/kafka-keystores/server/* /var/private/ssl/
     chmod -R --preserve-root 0755 /var/private
 
+    echo "192.168.33.11  zk.dev  zk" >> /etc/hosts
+
     # Tell systemd to enable and start the kafka service
     systemctl enable kafka.service
     systemctl start kafka.service

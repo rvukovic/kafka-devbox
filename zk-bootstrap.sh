@@ -77,6 +77,8 @@ then
     chown --preserve-root zookeeper:log /var/log/zookeeper
     chmod -R --preserve-root 0777 /var/log/zookeeper
 
+    echo "192.168.33.12  kafka.dev  kafka" >> /etc/hosts
+
     # Tell systemd to enable and start Zookeeper
     systemctl enable zookeeper.service
     systemctl start zookeeper.service

@@ -82,8 +82,8 @@ then
     KAFKA_KEYSTORE=/var/private/ssl
 
     # Create server keystore
-    keytool -keystore $KAFKA_KEYSTORE/kafka.server.keystore.jks -alias localhost \
-            -validity 365 -genkey -dname "CN=localhost, OU=Venicegeo-KS, C=US, ST=Virginia, L=Chantilly, O=Radiant Blue" \
+    keytool -keystore $KAFKA_KEYSTORE/kafka.server.keystore.jks -alias kafka \
+            -validity 365 -genkey -dname "CN=kafka.dev, OU=Venicegeo-KS, C=US, ST=Virginia, L=Chantilly, O=Radiant Blue" \
             -storepass test1234 -keypass test1234 -noprompt
     echo "Server keystore created"
 
@@ -106,39 +106,74 @@ then
     echo "Intermediate cert added to client truststore"
 
     # Create a certificate signing request (CSR) using the server private key
-    keytool -keystore $KAFKA_KEYSTORE/kafka.server.keystore.jks -alias localhost \
-            -certreq -file $KAFKA_KEYSTORE/certreq-file -storepass test1234 -noprompt
-    echo "CSR file created"
+    keytool -keystore $KAFKA_KEYSTORE/kafka.server.keystore.jks -alias kafka \
+            -certreq -file $KAFKA_KEYSTORE/server-certreq-file -storepass test1234 \
+            -noprompt
+    echo "Server CSR file created"
+
+    # Create a certificate signing request (CSR) using the client private key
+    keytool -keystore $KAFKA_KEYSTORE/kafka.client.keystore.jks -alias localhost \
+            -certreq -file $KAFKA_KEYSTORE/client-certreq-file -storepass test1234 \
+            -noprompt
+    echo "Client CSR file created"
 
     # Create and sign the server certificate using the intermediate CA
     openssl x509 -req -CA intermediate/certs/intermediate.cert.pem \
             -CAkey intermediate/private/intermediate.key.pem -CAserial serial \
-            -in $KAFKA_KEYSTORE/certreq-file -out $KAFKA_KEYSTORE/cert-signed \
+            -in $KAFKA_KEYSTORE/server-certreq-file \
+            -out $KAFKA_KEYSTORE/server-cert-signed \
             -days 365 -passin pass:test1234 -addtrust serverAuth -outform der
     echo "Server cert signed by intermediate CA"
 
+    # Create and sign the client certificate using the intermediate CA
+    openssl x509 -req -CA intermediate/certs/intermediate.cert.pem \
+            -CAkey intermediate/private/intermediate.key.pem -CAserial serial \
+            -in $KAFKA_KEYSTORE/client-certreq-file \
+            -out $KAFKA_KEYSTORE/client-cert-signed \
+            -days 365 -passin pass:test1234 -addtrust serverAuth -outform der
+    echo "Client cert signed by intermediate CA"
+
     # Add the intermediate CA certificate to the server keystore
-    keytool -keystore $KAFKA_KEYSTORE/kafka.server.keystore.jks -alias CAInt \
+    keytool -keystore $KAFKA_KEYSTORE/kafka.server.keystore.jks -alias CARoot \
             -import -file certs/ca.cert.pem \
             -storepass test1234 -noprompt
     echo "Root CA cert added to server keystore"
 
+    # Add the intermediate CA certificate to the client keystore
+    keytool -keystore $KAFKA_KEYSTORE/kafka.client.keystore.jks -alias CARoot \
+            -import -file certs/ca.cert.pem \
+            -storepass test1234 -noprompt
+    echo "Root CA cert added to client keystore"
+
     # Add the intermediate CA certificate to the server keystore
-    keytool -keystore $KAFKA_KEYSTORE/kafka.server.keystore.jks -alias CARoot \
+    keytool -keystore $KAFKA_KEYSTORE/kafka.server.keystore.jks -alias CAInt \
             -import -file intermediate/certs/intermediate.cert.pem \
             -storepass test1234 -noprompt
     echo "Intermediate cert added to server keystore"
 
+        # Add the intermediate CA certificate to the client keystore
+    keytool -keystore $KAFKA_KEYSTORE/kafka.client.keystore.jks -alias CAInt \
+            -import -file intermediate/certs/intermediate.cert.pem \
+            -storepass test1234 -noprompt
+    echo "Intermediate cert added to client keystore"
+
     # Add the signed server certificate to the server keystore
-    keytool -keystore $KAFKA_KEYSTORE/kafka.server.keystore.jks -alias localhost \
-            -import -file $KAFKA_KEYSTORE/cert-signed -storepass test1234 -noprompt
+    keytool -keystore $KAFKA_KEYSTORE/kafka.server.keystore.jks -alias kafka \
+            -import -file $KAFKA_KEYSTORE/server-cert-signed -storepass test1234 \
+            -noprompt
     echo "Signed server cert added to server keystore"
+
+        # Add the signed client certificate to the client keystore
+    keytool -keystore $KAFKA_KEYSTORE/kafka.client.keystore.jks -alias localhost \
+            -import -file $KAFKA_KEYSTORE/client-cert-signed -storepass test1234 \
+            -noprompt
+    echo "Signed client cert added to client keystore"
 
     # Remove previously created key and truststores from our shared dir
     rm -rf /vagrant/kafka-keystores
 
     # Create server and client dirs in shared dir
-    mkdir -p /vagrant/kafka-keystores/server /vagrant/kafka-keystores/client
+    mkdir -p /vagrant/kafka-keystores/{server,client}
 
     # Copy the key and trust stores to the proper shared dir
     cp $KAFKA_KEYSTORE/kafka.client.keystore.jks /vagrant/kafka-keystores/client/
