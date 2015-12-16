@@ -61,7 +61,7 @@ key.serializer=org.apache.kafka.common.serialization.StringSerializer
 value.serializer=org.apache.kafka.common.serialization.StringSerializer
 ```
 
-For both `key.serilizer` and `value.serilizer` you can also use the `ByteArraySerializer` class. The `StringSerializer` is for the cli clients.
+For both `key.serializer` and `value.serializer` you can also use the `ByteArraySerializer` class. The `StringSerializer` is for the cli clients.
 
 Note: Version 0.9.0.0 or higher of Kafka required for security features.
  
