@@ -13,7 +13,7 @@ then
     # Install java
     yaourt -S jre8-openjdk-headless --noconfirm
 
-    ZK_VER=3.4.7
+    ZK_VER=3.4.6
     PKG_NAME=zookeeper-${ZK_VER}
     APP_HOME=/usr/share/zookeeper
     ZK_SHARE=/vagrant/vagrant-bootstrap/zk
